@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="20-0 Tracker" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>20-0 Draft Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0f172a; color: #e2e8f0; font-family: 'DM Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    #app { min-height: 100vh; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .screen { animation: fadeIn 0.2s ease; }
+
+    /* Header */
+    .header {
+      display: flex; align-items: center; gap: 12; padding: 14px 16px;
+      border-bottom: 1px solid #1e293b; position: sticky; top: 0;
+      background: #0f172ae8; backdrop-filter: blur(12px); z-index: 100;
+      padding-top: max(14px, env(safe-area-inset-top));
+    }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #f59e0b; letter-spacing: 2px; }
+    .header-sub { color: #475569; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 1px; flex: 1; }
+    .header-btn { background: none; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; }
+
+    /* Cards */
+    .card { background: #111827; border: 1px solid #1e293b; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .section-label { font-family: 'DM Mono', monospace; font-size: 10px; color: #475569; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
+
+    /* Inputs */
+    input, select {
+      background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+      padding: 11px 14px; color: #e2e8f0; font-family: 'DM Sans', sans-serif;
+      font-size: 16px; outline: none; width: 100%;
+      -webkit-appearance: none; appearance: none;
+    }
+    input::placeholder { color: #475569; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+
+    /* Buttons */
+    .btn-primary { background: #f59e0b; color: #0f172a; border: none; border-radius: 10px; padding: 13px 20px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; min-height: 48px; }
+    .btn-primary:disabled { opacity: 0.4; }
+    .btn-green { background: #10b981; color: #fff; border: none; border-radius: 10px; padding: 13px 20px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; min-height: 48px; }
+    .btn-ghost { background: none; color: #94a3b8; border: 1px solid #334155; border-radius: 10px; padding: 12px 18px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; min-height: 48px; }
+    .btn-tag { background: #1e293b; color: #94a3b8; border: 1.5px solid #334155; border-radius: 8px; padding: 8px 14px; font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; min-height: 40px; }
+    .btn-tag.active { background: #f59e0b22; color: #f59e0b; border-color: #f59e0b; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-full { width: 100%; }
+
+    /* Badges */
+    .badge { display: inline-block; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+
+    /* Player chips */
+    .player-chip { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 12px; border: 1.5px solid #334155; background: #1e293b; cursor: pointer; transition: all 0.15s; min-height: 44px; }
+    .player-chip.selected { background: #f59e0b18; border-color: #f59e0b; }
+    .player-chip-name { color: #e2e8f0; font-size: 14px; flex: 1; }
+    .player-chip-remove { background: none; border: none; color: #475569; cursor: pointer; font-size: 16px; padding: 4px; min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center; }
+
+    /* Roster slot */
+    .slot-chip { font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 4px; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
+    .roster-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1e293b18; }
+    .roster-row:last-child { border-bottom: none; }
+    .roster-name { font-size: 13px; }
+    .roster-name.filled { color: #e2e8f0; font-weight: 600; }
+    .roster-name.empty { color: #334155; }
+
+    /* Progress */
+    .progress-track { background: #1e293b; height: 5px; border-radius: 3px; margin-bottom: 20px; }
+    .progress-fill { background: #f59e0b; height: 5px; border-radius: 3px; transition: width 0.4s ease; }
+
+    /* Analysis */
+    .grade-chip { font-family: 'Bebas Neue', sans-serif; font-size: 32px; padding: 4px 20px; border-radius: 10px; color: #fff; letter-spacing: 2px; }
+    .verdict-chip { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 5px; letter-spacing: 0.5px; color: #fff; white-space: nowrap; }
+    .round-num { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #f59e0b; letter-spacing: 1px; }
+    .alt-pick { color: #f59e0b; font-family: 'DM Mono', monospace; font-size: 12px; margin-top: 6px; }
+    .bullet-good { color: #10b981; font-size: 14px; margin: 5px 0; }
+    .bullet-bad { color: #ef4444; font-size: 14px; margin: 5px 0; }
+    .explanation { color: #94a3b8; font-size: 13px; line-height: 1.6; margin-top: 6px; }
+
+    /* Spinner */
+    .spinner { width: 36px; height: 36px; border: 3px solid #1e293b; border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+
+    /* Saved pool row */
+    .pool-row { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 12px 14px; border-radius: 10px; margin-bottom: 8px; gap: 10px; }
+    .pool-name { font-weight: 600; font-size: 14px; color: #e2e8f0; }
+    .pool-count { font-family: 'DM Mono', monospace; font-size: 11px; color: #475569; margin-left: 6px; }
+    .pool-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+
+    /* Mini roster pills on home */
+    .mini-slot { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; padding: 5px 9px; border-radius: 6px; letter-spacing: 0.5px; white-space: nowrap; }
+
+    /* Content padding */
+    .content { max-width: 600px; margin: 0 auto; padding: 16px 14px 80px; }
+
+    /* Install banner */
+    .install-banner { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-start; }
+    .install-icon { font-size: 22px; flex-shrink: 0; }
+    .install-text { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+    .install-text strong { color: #e2e8f0; }
+    .install-close { background: none; border: none; color: #475569; cursor: pointer; font-size: 18px; padding: 0; margin-left: auto; flex-shrink: 0; }
+
+    .two-col { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 600px) { .two-col { grid-template-columns: 1fr 200px; } }
+
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .input-row select { flex-shrink: 0; width: auto; min-width: 90px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const POSITIONS = ["QB","RB","WR","TE","FLEX","FLEX","EDGE","DT","LB","CB","S","D-FLEX"];
+const TOTAL_ROUNDS = 12;
+const POS_COLORS = {
+  QB:"#f59e0b",RB:"#10b981",WR:"#3b82f6",TE:"#8b5cf6",
+  FLEX:"#06b6d4",EDGE:"#ef4444",DT:"#f97316",LB:"#ec4899",
+  CB:"#14b8a6",S:"#6366f1","D-FLEX":"#84cc16"
+};
+const VERDICT_COLORS = {
+  "Optimal":"#10b981","Good":"#3b82f6","Questionable":"#f59e0b","Missed Opportunity":"#ef4444"
+};
+const STORAGE_POOLS = "20_pools";
+const STORAGE_DRAFT = "20_draft";
+const STORAGE_BANNER = "20_banner";
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+const ls = {
+  get: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+let state = {
+  screen: "home",
+  pools: ls.get(STORAGE_POOLS, {}),
+  rounds: [],
+  roster: POSITIONS.map((p,i) => ({ slot:p, idx:i, player:null })),
+  currentRound: 0,
+  // draft entry
+  team: "", era: "", playerName: "", playerPos: "QB",
+  pool: [], pick: null, slot: "",
+  poolSuggestions: [],
+  // analysis
+  analysis: null, analyzing: false, analysisError: null,
+  showBanner: ls.get(STORAGE_BANNER, true)
+};
+
+// Restore saved draft
+const saved = ls.get(STORAGE_DRAFT, null);
+if (saved) {
+  state.rounds = saved.rounds || [];
+  state.roster = saved.roster || state.roster;
+  state.currentRound = saved.currentRound || 0;
+}
+
+function setState(patch) {
+  Object.assign(state, patch);
+  // Persist
+  ls.set(STORAGE_POOLS, state.pools);
+  ls.set(STORAGE_DRAFT, { rounds: state.rounds, roster: state.roster, currentRound: state.currentRound });
+  render();
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function poolKey(team, era) { return `${era}||${team}`; }
+function poolLabel(k) { const [era,team] = k.split("||"); return `${era} ${team}`; }
+function badge(pos) { return `<span class="badge" style="background:${POS_COLORS[pos]||'#64748b'}">${pos}</span>`; }
+function slotChip(slot, hasPlayer) {
+  return `<span class="slot-chip" style="background:${hasPlayer?(POS_COLORS[slot]||'#64748b'):'#1e293b'};color:${hasPlayer?'#fff':'#334155'}">${slot}</span>`;
+}
+
+// ── Analysis ─────────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  setState({ analyzing: true, analysisError: null, screen: "analysis" });
+  const prompt = `You are an expert NFL draft analyst for the game 20-0, where players draft all-time NFL legends to build a 12-player roster (QB, RB, WR, TE, FLEX, FLEX, EDGE, DT, LB, CB, S, D-FLEX) and try to go 20-0.
+
+Here is the completed draft, round by round:
+
+${state.rounds.map((r,i) => `Round ${i+1} — ${r.era} ${r.team}
+  Available: ${r.pool.map(p=>`${p.name} (${p.position})`).join(", ")}
+  Picked: ${r.pick?`${r.pick.name} (${r.pick.position})`:"None"}
+  Slot: ${r.slot||"N/A"}`).join("\n\n")}
+
+Final Roster:
+${state.roster.map(s=>s.player?`${s.slot}: ${s.player.name}`:`${s.slot}: EMPTY`).join("\n")}
+
+Respond ONLY with valid JSON, no markdown fences:
+{
+  "overallGrade": "A+/A/A-/B+/B/B-/C+/C/C-/D/F",
+  "summary": "2-3 sentence overall assessment",
+  "roundAnalysis": [{"round":1,"verdict":"Optimal|Good|Questionable|Missed Opportunity","explanation":"...","alternativePick":"Name (Pos) or null"}],
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "idealRedraft": [{"slot":"QB","player":"Name","round":1,"reason":"..."}]
+}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content||[]).find(b=>b.type==="text")?.text || "";
+    const analysis = JSON.parse(text.replace(/```json|```/g,"").trim());
+    setState({ analysis, analyzing: false });
+  } catch(e) {
+    setState({ analyzing: false, analysisError: "Analysis failed — please try again." });
+  }
+}
+
+function resetDraft() {
+  if (!confirm("Reset draft? This cannot be undone.")) return;
+  setState({
+    rounds: [], roster: POSITIONS.map((p,i)=>({slot:p,idx:i,player:null})),
+    currentRound: 0, analysis: null, screen: "home",
+    team:"",era:"",pool:[],pick:null,slot:""
+  });
+}
+
+function addPlayer() {
+  const name = state.playerName.trim();
+  if (!name) return;
+  setState({ pool: [...state.pool, {name, position: state.playerPos}], playerName: "" });
+  document.getElementById("pname")?.focus();
+}
+
+function removePlayer(i) {
+  const pool = state.pool.filter((_,idx)=>idx!==i);
+  const pick = state.pick && state.pool[i]?.name === state.pick.name ? null : state.pick;
+  setState({ pool, pick });
+}
+
+function selectPick(p) { setState({ pick: p, slot: "" }); }
+
+function loadSavedPool(key) {
+  const [savedEra, savedTeam] = key.split("||");
+  setState({ era: savedEra, team: savedTeam, pool: state.pools[key] || [], poolSuggestions: [] });
+}
+
+function updateSuggestions() {
+  const t = state.team.toLowerCase(), e = state.era.toLowerCase();
+  if (!t && !e) { setState({ poolSuggestions: [] }); return; }
+  const matches = Object.keys(state.pools).filter(k => k.toLowerCase().includes(t) || k.toLowerCase().includes(e));
+  setState({ poolSuggestions: matches.slice(0,5) });
+}
+
+function confirmRound() {
+  if (!state.team||!state.era||!state.pick||!state.slot) return;
+  const key = poolKey(state.team, state.era);
+  const pools = { ...state.pools, [key]: state.pool };
+  const newRound = { round: state.currentRound+1, team: state.team, era: state.era, pool: state.pool, pick: state.pick, slot: state.slot };
+  const newRounds = [...state.rounds, newRound];
+  let filled = false;
+  const roster = state.roster.map(s => {
+    if (!filled && s.slot===state.slot && !s.player) { filled=true; return {...s, player: state.pick}; }
+    return s;
+  });
+  const currentRound = state.currentRound + 1;
+  setState({ pools, rounds: newRounds, roster, currentRound,
+    team:"",era:"",pool:[],pick:null,slot:"",playerName:"",poolSuggestions:[],
+    screen: currentRound >= TOTAL_ROUNDS ? "home" : "draft"
+  });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById("app");
+  const s = state;
+
+  if (s.screen === "analysis") { app.innerHTML = renderAnalysis(); bindAnalysis(); return; }
+  if (s.screen === "draft") { app.innerHTML = renderDraft(); bindDraft(); return; }
+  app.innerHTML = renderHome(); bindHome();
+}
+
+// ── HOME ─────────────────────────────────────────────────────────────────────
+function renderHome() {
+  const s = state;
+  const bannerHTML = s.showBanner ? `
+    <div class="install-banner">
+      <span class="install-icon">📲</span>
+      <div class="install-text">
+        <strong>Install as app:</strong> tap the Share button in Safari, then <strong>"Add to Home Screen"</strong> for a native app experience.
+      </div>
+      <button class="install-close" id="closeBanner">✕</button>
+    </div>` : "";
+
+  const rosterHTML = s.roster.map(sl => `
+    <span class="mini-slot" style="background:${sl.player?(POS_COLORS[sl.slot]||'#64748b'):'#1e293b'};color:${sl.player?'#fff':'#334155'}"
+      title="${sl.player?.name||sl.slot}">
+      ${sl.player ? sl.player.name.split(" ").pop() : sl.slot}
+    </span>`).join("");
+
+  const draftBtnLabel = s.currentRound===0?"Start Draft":s.currentRound>=TOTAL_ROUNDS?"Draft Complete":`Continue — Round ${s.currentRound+1}`;
+  const analyzeBtnHTML = s.currentRound>0?`<button class="btn-green" id="analyzeBtn">Analyze Draft</button>`:"";
+  const resetBtnHTML = s.currentRound>0?`<button class="btn-ghost" id="resetBtn">Reset</button>`:"";
+
+  const poolsHTML = Object.keys(s.pools).length===0
+    ? `<p style="color:#475569;font-family:'DM Mono',monospace;font-size:12px">Pools you log during the draft will be saved here.</p>`
+    : Object.entries(s.pools).map(([k,players])=>`
+        <div class="pool-row">
+          <div><span class="pool-name">${poolLabel(k)}</span><span class="pool-count">${players.length} players</span></div>
+          <div class="pool-badges">${players.map(p=>badge(p.position)).join("")}</div>
+        </div>`).join("");
+
+  return `
+    <div class="screen">
+      <div class="header">
+        <span class="logo">20-0</span>
+        <span class="header-sub">DRAFT TRACKER</span>
+      </div>
+      <div class="content">
+        ${bannerHTML}
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span class="section-label" style="margin:0">CURRENT DRAFT</span>
+            <span style="color:#f59e0b;font-family:'DM Mono',monospace;font-size:12px">${s.currentRound}/${TOTAL_ROUNDS} ROUNDS</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">${rosterHTML}</div>
+          <div class="btn-row">
+            <button class="btn-primary" id="startBtn" ${s.currentRound>=TOTAL_ROUNDS?"disabled":""}>${draftBtnLabel}</button>
+            ${analyzeBtnHTML}
+            ${resetBtnHTML}
+          </div>
+        </div>
+        <div class="card">
+          <p class="section-label">SAVED TEAM POOLS (${Object.keys(s.pools).length})</p>
+          ${poolsHTML}
+        </div>
+      </div>
+    </div>`;
+}
+
+function bindHome() {
+  document.getElementById("startBtn")?.addEventListener("click", ()=>setState({screen:"draft"}));
+  document.getElementById("analyzeBtn")?.addEventListener("click", runAnalysis);
+  document.getElementById("resetBtn")?.addEventListener("click", resetDraft);
+  document.getElementById("closeBanner")?.addEventListener("click", ()=>{
+    ls.set(STORAGE_BANNER, false); setState({showBanner:false});
+  });
+}
+
+// ── DRAFT ────────────────────────────────────────────────────────────────────
+function renderDraft() {
+  const s = state;
+  const pct = (s.currentRound/TOTAL_ROUNDS)*100;
+  const emptySlots = [...new Set(s.roster.filter(sl=>!sl.player).map(sl=>sl.slot))];
+
+  const suggestionsHTML = s.poolSuggestions.length ? `
+    <div style="margin-bottom:12px">
+      <p class="section-label" style="margin-bottom:6px">SAVED POOLS — TAP TO LOAD</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${s.poolSuggestions.map(k=>`<button class="btn-tag load-pool" data-key="${k}">${poolLabel(k)} (${s.pools[k]?.length||0})</button>`).join("")}
+      </div>
+    </div>` : "";
+
+  const poolHTML = s.pool.length===0
+    ? `<p style="color:#475569;font-family:'DM Mono',monospace;font-size:12px;padding:4px 0">No players added yet.</p>`
+    : s.pool.map((p,i)=>`
+        <div class="player-chip ${s.pick?.name===p.name?'selected':''}" data-idx="${i}" id="pchip${i}">
+          ${badge(p.position)}
+          <span class="player-chip-name">${p.name}</span>
+          <button class="player-chip-remove rm-player" data-idx="${i}">✕</button>
+        </div>`).join("");
+
+  const pickHTML = s.pick ? `
+    <div class="card">
+      <p class="section-label">MY PICK</p>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        ${badge(s.pick.position)}
+        <span style="color:#f59e0b;font-weight:700;font-size:17px">${s.pick.name}</span>
+      </div>
+      <p class="section-label" style="margin-bottom:8px">ASSIGN TO SLOT</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${emptySlots.map(sl=>`<button class="btn-tag slot-btn ${s.slot===sl?'active':''}" data-slot="${sl}">${sl}</button>`).join("")}
+      </div>
+    </div>` : "";
+
+  const canConfirm = state.team&&state.era&&state.pick&&state.slot;
+
+  const rosterHTML = s.roster.map(sl=>`
+    <div class="roster-row">
+      ${slotChip(sl.slot,!!sl.player)}
+      <span class="roster-name ${sl.player?'filled':'empty'}">${sl.player?sl.player.name:'Empty'}</span>
+    </div>`).join("");
+
+  return `
+    <div class="screen">
+      <div class="header">
+        <span class="logo">20-0</span>
+        <span class="header-sub">ROUND ${s.currentRound+1} / ${TOTAL_ROUNDS}</span>
+        <button class="header-btn" id="backBtn">← Home</button>
+      </div>
+      <div class="content">
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <p class="section-label">SPIN RESULT</p>
+              <div style="display:flex;gap:8px;margin-bottom:${s.poolSuggestions.length?12:0}px">
+                <input placeholder="Era (e.g. 2020-2024)" id="eraInput" value="${s.era}" style="flex:1" />
+                <input placeholder="Team" id="teamInput" value="${s.team}" style="flex:1" />
+              </div>
+              ${suggestionsHTML}
+            </div>
+            <div class="card">
+              <p class="section-label">AVAILABLE PLAYERS</p>
+              <div class="input-row" style="margin-bottom:10px">
+                <input placeholder="Player name" id="pname" value="${s.playerName}" />
+                <select id="ppos">
+                  ${["QB","RB","WR","TE","FLEX","EDGE","DT","LB","CB","S","D-FLEX"].map(p=>`<option ${p===s.playerPos?'selected':''}>${p}</option>`).join("")}
+                </select>
+                <button class="btn-primary" id="addBtn" style="padding:11px 14px;font-size:14px;flex-shrink:0">Add</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">${poolHTML}</div>
+            </div>
+            ${pickHTML}
+            <button class="btn-primary btn-full" id="confirmBtn" ${canConfirm?'':'disabled'}>
+              Confirm Round ${s.currentRound+1} →
+            </button>
+          </div>
+          <div class="card" style="height:fit-content">
+            <p class="section-label">YOUR ROSTER</p>
+            ${rosterHTML}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function bindDraft() {
+  document.getElementById("backBtn")?.addEventListener("click",()=>setState({screen:"home"}));
+
+  const eraIn = document.getElementById("eraInput");
+  const teamIn = document.getElementById("teamInput");
+  const pname = document.getElementById("pname");
+  const ppos = document.getElementById("ppos");
+
+  eraIn?.addEventListener("input", e=>{ state.era=e.target.value; updateSuggestions(); });
+  teamIn?.addEventListener("input", e=>{ state.team=e.target.value; updateSuggestions(); });
+  pname?.addEventListener("input", e=>{ state.playerName=e.target.value; });
+  pname?.addEventListener("keydown", e=>{ if(e.key==="Enter"){e.preventDefault();addPlayer();} });
+  ppos?.addEventListener("change", e=>{ state.playerPos=e.target.value; });
+
+  document.getElementById("addBtn")?.addEventListener("click", addPlayer);
+  document.getElementById("confirmBtn")?.addEventListener("click", confirmRound);
+
+  document.querySelectorAll(".load-pool").forEach(btn=>
+    btn.addEventListener("click",()=>loadSavedPool(btn.dataset.key)));
+
+  document.querySelectorAll(".player-chip").forEach(chip=>
+    chip.addEventListener("click", e=>{
+      if (e.target.classList.contains("rm-player")) return;
+      const i = parseInt(chip.dataset.idx);
+      selectPick(state.pool[i]);
+    }));
+
+  document.querySelectorAll(".rm-player").forEach(btn=>
+    btn.addEventListener("click", e=>{ e.stopPropagation(); removePlayer(parseInt(btn.dataset.idx)); }));
+
+  document.querySelectorAll(".slot-btn").forEach(btn=>
+    btn.addEventListener("click",()=>setState({slot:btn.dataset.slot})));
+}
+
+// ── ANALYSIS ─────────────────────────────────────────────────────────────────
+function renderAnalysis() {
+  const s = state;
+
+  if (s.analyzing) return `
+    <div class="screen">
+      <div class="header"><span class="logo">20-0</span><span class="header-sub">ANALYZING...</span></div>
+      <div class="content" style="text-align:center;padding-top:80px">
+        <div class="spinner"></div>
+        <p style="color:#94a3b8;font-family:'DM Mono',monospace;margin-top:20px;font-size:13px">Reviewing your draft...</p>
+      </div>
+    </div>`;
+
+  if (s.analysisError) return `
+    <div class="screen">
+      <div class="header"><span class="logo">20-0</span><button class="header-btn" id="backBtn">← Home</button></div>
+      <div class="content"><p style="color:#ef4444">${s.analysisError}</p><button class="btn-primary" id="retryBtn" style="margin-top:16px">Try Again</button></div>
+    </div>`;
+
+  if (!s.analysis) return `<div class="screen"><div class="content"><p style="color:#475569">No analysis yet.</p></div></div>`;
+
+  const a = s.analysis;
+  const gradeColor = a.overallGrade?.startsWith("A")?"#10b981":a.overallGrade?.startsWith("B")?"#3b82f6":a.overallGrade?.startsWith("C")?"#f59e0b":"#ef4444";
+
+  const roundsHTML = (a.roundAnalysis||[]).map(r=>{
+    const rd = s.rounds[r.round-1];
+    return `
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="round-num">R${r.round}</span>
+            ${rd?.pick?`<strong style="color:#e2e8f0;font-size:15px">${rd.pick.name}</strong>${badge(rd.pick.position)}`:''}
+          </div>
+          <span class="verdict-chip" style="background:${VERDICT_COLORS[r.verdict]||'#64748b'}">${r.verdict}</span>
+        </div>
+        <p class="explanation">${r.explanation}</p>
+        ${r.alternativePick?`<p class="alt-pick">→ Better pick: ${r.alternativePick}</p>`:''}
+      </div>`;}).join("");
+
+  const redraftHTML = (a.idealRedraft||[]).map(item=>`
+    <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+      <span class="slot-chip" style="background:${POS_COLORS[item.slot]||'#64748b'};color:#fff;padding:4px 8px">${item.slot}</span>
+      <div>
+        <span style="color:#e2e8f0;font-weight:600">${item.player}</span>
+        <span style="color:#475569;font-family:'DM Mono',monospace;font-size:11px;margin-left:6px">(Rd ${item.round})</span>
+        <p style="color:#94a3b8;font-size:12px;margin-top:3px">${item.reason}</p>
+      </div>
+    </div>`).join("");
+
+  return `
+    <div class="screen">
+      <div class="header">
+        <span class="logo">20-0</span>
+        <span class="header-sub">DRAFT ANALYSIS</span>
+        <button class="header-btn" id="backBtn">← Home</button>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+            <span class="grade-chip" style="background:${gradeColor}">${a.overallGrade}</span>
+            <p style="color:#cbd5e1;font-size:14px;line-height:1.6;flex:1;min-width:200px">${a.summary}</p>
+          </div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <div style="flex:1;min-width:140px">
+              <p class="section-label">STRENGTHS</p>
+              ${(a.strengths||[]).map(str=>`<p class="bullet-good">✓ ${str}</p>`).join("")}
+            </div>
+            <div style="flex:1;min-width:140px">
+              <p class="section-label">WEAKNESSES</p>
+              ${(a.weaknesses||[]).map(w=>`<p class="bullet-bad">✗ ${w}</p>`).join("")}
+            </div>
+          </div>
+        </div>
+
+        <p class="section-label">ROUND-BY-ROUND</p>
+        ${roundsHTML}
+
+        ${redraftHTML ? `<p class="section-label" style="margin-top:8px">IDEAL REDRAFT</p><div class="card">${redraftHTML}</div>` : ""}
+
+        <button class="btn-primary btn-full" id="newDraftBtn" style="margin-top:8px">Start New Draft</button>
+      </div>
+    </div>`;
+}
+
+function bindAnalysis() {
+  document.getElementById("backBtn")?.addEventListener("click",()=>setState({screen:"home"}));
+  document.getElementById("retryBtn")?.addEventListener("click",runAnalysis);
+  document.getElementById("newDraftBtn")?.addEventListener("click",resetDraft);
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
